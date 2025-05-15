@@ -72,7 +72,8 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 //    private var cameraFacing = CameraSelector.LENS_FACING_BACK
     private var cameraFacing = CameraSelector.LENS_FACING_FRONT
     private var lastVibrationTime = 0L
-    private val vibrationCooldown = 3000 // milliseconds
+    private val vibrationCooldown = 1000 // milliseconds
+    private var isAlertVisible = false
 
     /** Blocking ML operations are performed using this executor */
     private lateinit var backgroundExecutor: ExecutorService
@@ -444,33 +445,37 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                     RunningMode.LIVE_STREAM
                 )
 
-                val neckAngle = fragmentCameraBinding.overlay.neckAngle
+                val leftNeckAngle = fragmentCameraBinding.overlay.leftNeckAngle
+                val rightNeckAngle = fragmentCameraBinding.overlay.rightNeckAngle
                 val alertBanner = fragmentCameraBinding.root.findViewById<TextView>(R.id.alert_banner)
                 val currentTime = System.currentTimeMillis()
-                if (neckAngle < 40 && currentTime - lastVibrationTime > vibrationCooldown) {
-                    // Show alert banner
+                val angleLimit = 35.0
+                val isNeckTilted = leftNeckAngle > angleLimit || rightNeckAngle > angleLimit
+
+                // Only run this every few frames or on state change
+                if (isNeckTilted && !isAlertVisible && currentTime - lastVibrationTime > vibrationCooldown) {
+
+                    isAlertVisible = true
+                    lastVibrationTime = currentTime
+
                     activity?.runOnUiThread {
                         alertBanner.visibility = View.VISIBLE
                     }
 
-                    // Vibrate once if not already vibrating
                     val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         vibrator.vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE))
                     } else {
                         @Suppress("DEPRECATION")
-                        vibrator.vibrate(300)
+                        vibrator.vibrate(500)
                     }
-                    // Hide the alert after a certain amount of time, like 3 seconds
+
                     Handler(Looper.getMainLooper()).postDelayed({
                         alertBanner.visibility = View.GONE
-                    }, 3000)
-                } else {
-                    // Hide the alert if the posture is correct
-                    activity?.runOnUiThread {
-                        alertBanner.visibility = View.GONE
-                    }
+                        isAlertVisible = false
+                    }, 1000)
                 }
+
 
                 // Force a redraw
                 fragmentCameraBinding.overlay.invalidate()

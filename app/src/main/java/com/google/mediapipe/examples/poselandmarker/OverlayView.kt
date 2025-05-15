@@ -41,7 +41,8 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
     private var scaleFactor: Float = 1f
     private var imageWidth: Int = 1
     private var imageHeight: Int = 1
-    var neckAngle: Double = 0.0
+    var leftNeckAngle: Double = 0.0
+    var rightNeckAngle: Double = 0.0
 
     init {
         initPaints()
@@ -70,7 +71,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
         super.draw(canvas)
         results?.let { poseLandmarkerResult ->
             for (landmark in poseLandmarkerResult.landmarks()) {
-                calculateNeckAngle(landmark)
+                calculateNeckAngles(landmark)
                 for (normalizedLandmark in landmark) {
                     canvas.drawPoint(
                         normalizedLandmark.x() * imageWidth * scaleFactor,
@@ -110,22 +111,32 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
         }
     }
 
-    private fun calculateNeckAngle(landmarks: List<NormalizedLandmark>) {
-        // MediaPipe Pose indices:
-        // LEFT_SHOULDER = 11, RIGHT_SHOULDER = 12, LEFT_EAR = 7
-
+    private fun calculateNeckAngles(landmarks: List<NormalizedLandmark>) {
         val leftShoulder = landmarks[11]
         val rightShoulder = landmarks[12]
         val leftEar = landmarks[7]
+        val rightEar = landmarks[8]
 
-        // Midpoint of the shoulders (approximate neck base)
-        val midShoulderX = (leftShoulder.x() + rightShoulder.x()) / 2
-        val midShoulderY = (leftShoulder.y() + rightShoulder.y()) / 2
+        // Vertical reference for left shoulder
+        val verticalLeftX = leftShoulder.x()
+        val verticalLeftY = leftShoulder.y() - 0.1f
 
-        neckAngle = getAngle(
+        // Vertical reference for right shoulder
+        val verticalRightX = rightShoulder.x()
+        val verticalRightY = rightShoulder.y() - 0.1f
+
+        // Angle between left ear and left shoulder (left side neck tilt)
+        leftNeckAngle = getAngle(
             leftEar.x(), leftEar.y(),
-            midShoulderX, midShoulderY,
-            midShoulderX, midShoulderY - 0.1f  // vertical vector reference
+            leftShoulder.x(), leftShoulder.y(),
+            verticalLeftX, verticalLeftY
+        )
+
+        // Angle between right ear and right shoulder (right side neck tilt)
+        rightNeckAngle = getAngle(
+            rightEar.x(), rightEar.y(),
+            rightShoulder.x(), rightShoulder.y(),
+            verticalRightX, verticalRightY
         )
     }
 

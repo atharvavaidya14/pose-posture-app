@@ -32,7 +32,7 @@
         android:text="@string/posture_alert"
         android:textColor="@color/mp_color_error"
         android:textSize="18sp"
-        android:visibility="visible" />
+        android:visibility="gone" />
 
         <androidx.camera.view.PreviewView
             android:id="@+id/view_finder"
