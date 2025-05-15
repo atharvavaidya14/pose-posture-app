@@ -121,6 +121,7 @@
                     android:contentDescription="@string/alt_bottom_sheet_threshold_button_plus"
                     android:src="@drawable/ic_plus" />
             </LinearLayout>
+
         </RelativeLayout>
 
         <RelativeLayout
@@ -270,5 +271,15 @@
                 android:theme="@style/BottomSheetSpinnerItemStyle" />
 
         </RelativeLayout>
+
+        <ToggleButton
+            android:id="@+id/camera_flip_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textOff="@string/camera_flip_front"
+            android:textOn="@string/camera_flip_back"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"/>
+
     </androidx.appcompat.widget.LinearLayoutCompat>
 </androidx.core.widget.NestedScrollView>

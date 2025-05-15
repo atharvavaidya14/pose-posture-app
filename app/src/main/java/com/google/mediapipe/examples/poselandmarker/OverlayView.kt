@@ -25,8 +25,11 @@ import androidx.core.content.ContextCompat
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
+import kotlin.math.acos
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sqrt
 
 class OverlayView(context: Context?, attrs: AttributeSet?) :
     View(context, attrs) {
@@ -38,6 +41,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
     private var scaleFactor: Float = 1f
     private var imageWidth: Int = 1
     private var imageHeight: Int = 1
+    var neckAngle: Double = 0.0
 
     init {
         initPaints()
@@ -65,8 +69,9 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
         results?.let { poseLandmarkerResult ->
-            for(landmark in poseLandmarkerResult.landmarks()) {
-                for(normalizedLandmark in landmark) {
+            for (landmark in poseLandmarkerResult.landmarks()) {
+                calculateNeckAngle(landmark)
+                for (normalizedLandmark in landmark) {
                     canvas.drawPoint(
                         normalizedLandmark.x() * imageWidth * scaleFactor,
                         normalizedLandmark.y() * imageHeight * scaleFactor,
@@ -74,16 +79,64 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
                     )
                 }
 
-                PoseLandmarker.POSE_LANDMARKS.forEach {
+                val redLinePaint = Paint(linePaint).apply {
+                    color = Color.RED
+                }
+
+                for (connection in PoseLandmarker.POSE_LANDMARKS) {
+                    val start = landmark[connection!!.start()]
+                    val end = landmark[connection.end()]
+
+                    val startX = start.x() * imageWidth * scaleFactor
+                    val startY = start.y() * imageHeight * scaleFactor
+                    val endX = end.x() * imageWidth * scaleFactor
+                    val endY = end.y() * imageHeight * scaleFactor
+
+                    val useRed =
+                        // Left arm: shoulder 11, elbow 13
+                        (connection.start() == 11 && connection.end() == 13 && landmark[13].y() < landmark[11].y()) ||
+                                // Right arm: shoulder 12, elbow 14
+                                (connection.start() == 12 && connection.end() == 14 && landmark[14].y() < landmark[12].y())
+
                     canvas.drawLine(
-                        poseLandmarkerResult.landmarks().get(0).get(it!!.start()).x() * imageWidth * scaleFactor,
-                        poseLandmarkerResult.landmarks().get(0).get(it.start()).y() * imageHeight * scaleFactor,
-                        poseLandmarkerResult.landmarks().get(0).get(it.end()).x() * imageWidth * scaleFactor,
-                        poseLandmarkerResult.landmarks().get(0).get(it.end()).y() * imageHeight * scaleFactor,
-                        linePaint)
+                        startX,
+                        startY,
+                        endX,
+                        endY,
+                        if (useRed) redLinePaint else linePaint
+                    )
                 }
             }
         }
+    }
+
+    private fun calculateNeckAngle(landmarks: List<NormalizedLandmark>) {
+        // MediaPipe Pose indices:
+        // LEFT_SHOULDER = 11, RIGHT_SHOULDER = 12, LEFT_EAR = 7
+
+        val leftShoulder = landmarks[11]
+        val rightShoulder = landmarks[12]
+        val leftEar = landmarks[7]
+
+        // Midpoint of the shoulders (approximate neck base)
+        val midShoulderX = (leftShoulder.x() + rightShoulder.x()) / 2
+        val midShoulderY = (leftShoulder.y() + rightShoulder.y()) / 2
+
+        neckAngle = getAngle(
+            leftEar.x(), leftEar.y(),
+            midShoulderX, midShoulderY,
+            midShoulderX, midShoulderY - 0.1f  // vertical vector reference
+        )
+    }
+
+    // Util: Calculate angle between 3 points
+    private fun getAngle(ax: Float, ay: Float, bx: Float, by: Float, cx: Float, cy: Float): Double {
+        val ab = doubleArrayOf((ax - bx).toDouble(), (ay - by).toDouble())
+        val cb = doubleArrayOf((cx - bx).toDouble(), (cy - by).toDouble())
+        val dotProduct = ab[0] * cb[0] + ab[1] * cb[1]
+        val abMag = sqrt(ab[0] * ab[0] + ab[1] * ab[1])
+        val cbMag = sqrt(cb[0] * cb[0] + cb[1] * cb[1])
+        return Math.toDegrees(acos(dotProduct / (abMag * cbMag)))
     }
 
     fun setResults(

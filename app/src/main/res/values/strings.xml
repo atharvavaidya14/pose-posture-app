@@ -45,6 +45,10 @@
     <string name="label_num_poses">Number of Poses</string>
     <string name="label_delegate">Delegate</string>
     <string name="label_models">Model</string>
+    <string name="camera_flip_front">Flip to Back Camera</string>
+    <string name="camera_flip_back">Flip to Front Camera</string>
+    <string name="posture_alert">⚠️ Bad Posture Detected</string>
+    <string name="dev_name">by Atharva Vaidya</string>
 
     <string-array name="delegate_spinner_titles">
         <item>CPU</item>

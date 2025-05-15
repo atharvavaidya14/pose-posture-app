@@ -23,6 +23,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
+import android.widget.TextView
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.Build
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.camera.core.Preview
 import androidx.camera.core.CameraSelector
@@ -62,7 +69,10 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
     private var imageAnalyzer: ImageAnalysis? = null
     private var camera: Camera? = null
     private var cameraProvider: ProcessCameraProvider? = null
-    private var cameraFacing = CameraSelector.LENS_FACING_BACK
+//    private var cameraFacing = CameraSelector.LENS_FACING_BACK
+    private var cameraFacing = CameraSelector.LENS_FACING_FRONT
+    private var lastVibrationTime = 0L
+    private val vibrationCooldown = 3000 // milliseconds
 
     /** Blocking ML operations are performed using this executor */
     private lateinit var backgroundExecutor: ExecutorService
@@ -261,7 +271,49 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                     /* no op */
                 }
             }
+        fragmentCameraBinding.bottomSheetLayout.cameraFlipButton.setOnCheckedChangeListener { _, isChecked ->
+            // Update cameraFacing variable based on toggle state
+            cameraFacing = if (isChecked) {
+                CameraSelector.LENS_FACING_BACK
+            } else {
+                CameraSelector.LENS_FACING_FRONT
+            }
+
+            // Restart the camera with new facing
+            stopCamera()        // <-- make sure to stop current camera session
+            startCamera()       // <-- restart with the updated cameraFacing
+        }
+
     }
+
+    private fun stopCamera() {
+        cameraProvider?.unbindAll()
+    }
+
+    private fun startCamera() {
+        val cameraSelector = CameraSelector.Builder()
+            .requireLensFacing(cameraFacing)
+            .build()
+
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
+
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(fragmentCameraBinding.viewFinder.surfaceProvider
+                )
+            }
+
+            // Add your image analysis or pose detection use case here if needed
+            cameraProvider.bindToLifecycle(
+                viewLifecycleOwner,
+                cameraSelector,
+                preview
+            )
+
+        }, ContextCompat.getMainExecutor(requireContext()))
+    }
+
 
     // Update the values displayed in the bottom sheet. Reset Poselandmarker
     // helper.
@@ -391,6 +443,34 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                     resultBundle.inputImageWidth,
                     RunningMode.LIVE_STREAM
                 )
+
+                val neckAngle = fragmentCameraBinding.overlay.neckAngle
+                val alertBanner = fragmentCameraBinding.root.findViewById<TextView>(R.id.alert_banner)
+                val currentTime = System.currentTimeMillis()
+                if (neckAngle < 40 && currentTime - lastVibrationTime > vibrationCooldown) {
+                    // Show alert banner
+                    activity?.runOnUiThread {
+                        alertBanner.visibility = View.VISIBLE
+                    }
+
+                    // Vibrate once if not already vibrating
+                    val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(300)
+                    }
+                    // Hide the alert after a certain amount of time, like 3 seconds
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        alertBanner.visibility = View.GONE
+                    }, 3000)
+                } else {
+                    // Hide the alert if the posture is correct
+                    activity?.runOnUiThread {
+                        alertBanner.visibility = View.GONE
+                    }
+                }
 
                 // Force a redraw
                 fragmentCameraBinding.overlay.invalidate()
