@@ -93,11 +93,12 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
                     val endX = end.x() * imageWidth * scaleFactor
                     val endY = end.y() * imageHeight * scaleFactor
 
-                    val useRed =
-                        // Left arm: shoulder 11, elbow 13
-                        (connection.start() == 11 && connection.end() == 13 && landmark[13].y() < landmark[11].y()) ||
-                                // Right arm: shoulder 12, elbow 14
-                                (connection.start() == 12 && connection.end() == 14 && landmark[14].y() < landmark[12].y())
+                    fun isElbowAboveShoulder(startIdx: Int, endIdx: Int, shoulderIdx: Int, elbowIdx: Int): Boolean {
+                        return (startIdx == shoulderIdx && endIdx == elbowIdx || startIdx == elbowIdx && endIdx == shoulderIdx)
+                                && landmark[elbowIdx].y() < landmark[shoulderIdx].y()
+                    }
+                    val useRed = isElbowAboveShoulder(connection.start(), connection.end(), 11, 13) ||
+                            isElbowAboveShoulder(connection.start(), connection.end(), 12, 14)
 
                     canvas.drawLine(
                         startX,

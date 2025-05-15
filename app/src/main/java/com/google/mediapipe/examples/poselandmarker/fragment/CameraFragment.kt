@@ -72,7 +72,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 //    private var cameraFacing = CameraSelector.LENS_FACING_BACK
     private var cameraFacing = CameraSelector.LENS_FACING_FRONT
     private var lastVibrationTime = 0L
-    private val vibrationCooldown = 1000 // milliseconds
+    private val vibrationCooldown = 500 // milliseconds
     private var isAlertVisible = false
 
     /** Blocking ML operations are performed using this executor */
@@ -473,7 +473,7 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                     Handler(Looper.getMainLooper()).postDelayed({
                         alertBanner.visibility = View.GONE
                         isAlertVisible = false
-                    }, 1000)
+                    }, 500)
                 }
 
 
