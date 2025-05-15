@@ -1,4 +1,8 @@
-# MediaPipe Tasks Pose Landmark Detection Android Demo
+# pose-posture-app
+Building on top of Mediapipe pose tracking
+
+
+## MediaPipe Tasks Pose Landmark Detection Android Demo
 
 ### Overview
 
@@ -7,9 +11,6 @@ This is a camera app that can detects landmarks on a person either from continuo
 The task file is downloaded by a Gradle script when you build and run the app. You don't need to do any additional steps to download task files into the project explicitly unless you wish to use your own landmark detection task. If you do use your own task file, place it into the app's *assets* directory.
 
 This application should be run on a physical Android device to take advantage of the camera.
-
-![Pose Landmarker Demo](pose_landmarker.png?raw=true "Pose Landmarker Demo")
-[Public domain video from Lance Foss](https://www.youtube.com/watch?v=KALIKOd1pbA)
 
 ## Build the demo using Android Studio
 
@@ -39,3 +40,13 @@ This application should be run on a physical Android device to take advantage of
 
 Downloading, extraction, and placing the models into the *assets* folder is
 managed automatically by the **download.gradle** file.
+
+## License
+
+This project is based on Google's [MediaPipe Pose Landmarker](https://github.com/google/mediapipe) and includes code licensed under the Apache License 2.0.
+
+All modifications in this repository (posture correction logic, UI enhancements, and feedback system) are licensed under a Custom Non-Commercial License.
+
+You may not use this software or any derivative works for commercial purposes without prior written permission from the author.
+
+See [LICENSE.txt](./LICENSE.txt) and [LICENSE_APACHE.txt](./LICENSE_APACHE.txt) for details.
